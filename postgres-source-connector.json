@@ -1,0 +1,19 @@
+{
+  "name": "postgres-source-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "tasks.max": "1",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "airflow",
+    "database.password": "airflow",
+    "database.dbname": "airflow_db",
+    "database.server.name": "postgres-server",
+    "topic.prefix": "covid_data",
+    "table.whitelist": "covid_data",
+    "database.history.kafka.bootstrap.servers": "kafka:29092",
+    "database.history.kafka.topic": "schema-changes.postgres",
+    "include.schema.changes": "true",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter"
+  }
+}
