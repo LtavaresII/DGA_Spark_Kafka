@@ -4,4 +4,4 @@ Esse é um projeto que tem como objetivo criar um pipeline de processamento de d
 
 A base de dados utilizada foi sobre a Covid-19: https://github.com/owid/covid-19-data/blob/master/public/data/owid-covid-data.csv
 
-adicione essa base em uma pasta com o nome data na pasta onde estão o arquivo docker-compose.yml
+Ele foi modificada para apresentar os dados no periodo de tempo de 1 de janeiro de 2020 até 1 de janeiro de 2021
