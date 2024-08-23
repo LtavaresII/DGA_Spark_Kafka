@@ -82,17 +82,34 @@ df_kafka = df_kafka.selectExpr("CAST(value AS STRING)") \
     .select(from_json(col("value"), json_schema).alias("data")) \
     .select("data.*")
 
-# Transformação (Redução/Seleção de dados)
-df = df_kafka.select("iso_code", "continent","location","date","total_cases","total_deaths","reproduction_rate","icu_patients","hosp_patients","weekly_icu_admissions","weekly_hosp_admissions","total_tests","total_vaccinations","people_vaccinated","population","population_density","median_age","aged_65_older","aged_70_older","gdp_per_capita","extreme_poverty","excess_mortality")
+# Pega os dados apenas a partir de 01-03-2020
+df = df_kafka.filter(col("date") >= "2020-03-01")
+
+# Criação da taxa de mortalidade e taxa de vacinação
+df = df.withColumn("mortality_rate", (col("total_deaths") / col("total_cases")) * 100)
+df = df.withColumn("vaccination_rate", (col("people_vaccinated") / (col("population") - col("total_deaths"))) * 100)
+
+# Calcular o número de pessoas para cada porcentagem
+df = df.withColumn("people_median_age", (col("median_age") / 100) * (col("population") - col("total_deaths")))
+df = df.withColumn("people_aged_65_older", (col("aged_65_older") / 100) * (col("population") - col("total_deaths")))
+df = df.withColumn("people_aged_70_older", (col("aged_70_older") / 100) * (col("population") - col("total_deaths")))
+
+# Calcular a porcentagem de mortes em relação a cada grupo de idade (meia idade, acima de 65 e acima de 70)
+df = df.withColumn("death_percentage_median_age", (col("total_deaths") / col("people_median_age")) * 100)
+df = df.withColumn("death_percentage_aged_65_older", (col("total_deaths") / col("people_aged_65_older")) * 100)
+df = df.withColumn("death_percentage_aged_70_older", (col("total_deaths") / col("people_aged_70_older")) * 100)
+
+# Redução/Seleção de dados
+df = df.select("location","date","total_cases","new_cases","total_deaths","new_deaths","mortality_rate","death_percentage_median_age","death_percentage_aged_65_older","death_percentage_aged_70_older","total_vaccinations","people_vaccinated","new_vaccinations","vaccination_rate","population")
 
 # Definição da Função para Gravar os Dados no PostgreSQL
 def save_to_postgres(df, epoch_id):
     df.write \
         .format("jdbc") \
         .mode("append") \
-        .option("url", "jdbc:postgresql://postgres:5432/airflow_db") \
+        .option("url", "jdbc:postgresql://postgres:5432/airflow") \
         .option("driver", "org.postgresql.Driver") \
-        .option("dbtable", "covid_data") \
+        .option("dbtable", "covid_new_rate") \
         .option("user", "airflow") \
         .option("password", "airflow") \
         .save()
@@ -104,4 +121,4 @@ query = df.writeStream \
     .start()
 
 #Esperar a Terminação do Stream
-query.awaitTermination()
+query.awaitTermination(10)

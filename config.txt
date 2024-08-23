@@ -1,0 +1,23 @@
+comandos docker:
+docker-compose up -d
+docker-compose down
+criar topico:
+docker exec -it connect /bin/bash
+bin/kafka-topics.sh --create --topic covid_data --bootstrap-server kafka:29092
+acessar topicos:
+docker exec -it connect bin/kafka-topics.sh --list --bootstrap-server kafka:29092
+docker exec -it connect bin/kafka-console-consumer.sh --bootstrap-server kafka:29092 --topic covid --from-beginning
+docker exec -it connect bin/kafka-console-consumer.sh --bootstrap-server kafka:29092 --topic covid_new_rate --from-beginning
+connector-postgres(Win and linux):
+Invoke-RestMethod -Uri "http://localhost:8083/connectors" -Method Post -Headers @{"Content-Type"="application/json"} -Body (Get-Content -Raw -Path "postgres-source-connector.json")
+curl -X POST -H "Content-Type: application/json" --data @postgres-source-connector.json http://localhost:8083/connectors
+submit spark:
+docker exec -it spark-master /bin/bash -c "bin/spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 datalake_to_kafka.py"
+docker exec -it spark-master /bin/bash -c "bin/spark-submit --packages org.apache.spark:spark-streaming-kafka-0-10_2.12:3.5.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,org.postgresql:postgresql:42.6.1 kafka_to_postgres.py"
+docker exec -it spark-master /bin/bash -c "bin/spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,org.apache.spark:spark-streaming-kafka-0-10_2.12:3.5.0,org.postgresql:postgresql:42.6.1 postgres_to_kafka.py"
+docker exec -it spark-master /bin/bash -c "bin/spark-submit --packages org.apache.spark:spark-streaming-kafka-0-10_2.12:3.5.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 kafka_to_console.py"
+acessar o postgres:
+docker exec -it postgres /bin/bash
+psql -U airflow -d airflow_db
+\dt
+SELECT * FROM covid_new_rate;

@@ -74,10 +74,10 @@ schema = StructType([
 # Leitura dos dados do CSV como um stream de dados
 df = spark.readStream \
     .format("csv") \
-    .option("path", '/opt/bitnami/spark/data') \
     .option("sep", ",") \
     .option("header", "true") \
     .schema(schema) \
+    .option("path", '/opt/bitnami/spark/data') \
     .option("maxFilesPerTrigger", 1) \
     .load()
 
