@@ -39,6 +39,7 @@ x-airflow-common:
 services:
   postgres:
     image: postgres:13
+    container_name: postgres
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
@@ -68,6 +69,8 @@ services:
       retries: 50
       start_period: 30s
     restart: always
+    networks:
+      - data-network
 
   airflow-webserver:
     <<: *airflow-common
@@ -85,6 +88,8 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+    networks:
+      - data-network
 
   airflow-scheduler:
     <<: *airflow-common
@@ -100,6 +105,8 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+    networks:
+      - data-network
 
   airflow-worker:
     <<: *airflow-common
@@ -123,6 +130,8 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+    networks:
+      - data-network
 
   airflow-triggerer:
     <<: *airflow-common
@@ -138,6 +147,8 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+    networks:
+      - data-network
 
   airflow-init:
     <<: *airflow-common
@@ -202,6 +213,8 @@ services:
     user: "0:0"
     volumes:
       - ${AIRFLOW_PROJ_DIR:-.}:/sources
+    networks:
+      - data-network
 
   airflow-cli:
     <<: *airflow-common
@@ -215,6 +228,8 @@ services:
       - bash
       - -c
       - airflow
+    networks:
+      - data-network
 
   # You can enable flower by adding "--profile flower" option e.g. docker-compose --profile flower up
   # or by explicitly targeted on the command line e.g. docker-compose up flower.
@@ -237,6 +252,8 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+    networks:
+      - data-network
 
   zookeeper:
     image: wurstmeister/zookeeper:latest
