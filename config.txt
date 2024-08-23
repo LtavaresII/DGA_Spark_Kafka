@@ -18,6 +18,6 @@ docker exec -it spark-master /bin/bash -c "bin/spark-submit --packages org.apach
 docker exec -it spark-master /bin/bash -c "bin/spark-submit --packages org.apache.spark:spark-streaming-kafka-0-10_2.12:3.5.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 kafka_to_console.py"
 acessar o postgres:
 docker exec -it postgres /bin/bash
-psql -U airflow -d airflow_db
+psql -U airflow -d airflow
 \dt
 SELECT * FROM covid_new_rate;
