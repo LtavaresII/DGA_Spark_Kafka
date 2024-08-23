@@ -45,8 +45,6 @@ services:
       POSTGRES_DB: airflow
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     networks:
       - data-network
     command: ["postgres", "-c", "wal_level=logical"]
