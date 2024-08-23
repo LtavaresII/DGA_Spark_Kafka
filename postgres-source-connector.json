@@ -9,7 +9,7 @@
     "database.password": "airflow",
     "database.dbname": "airflow_db",
     "database.server.name": "postgres-server",
-    "topic.prefix": "covid_data",
+    "topic.prefix": "covid",
     "table.whitelist": "covid_data",
     "database.history.kafka.bootstrap.servers": "kafka:29092",
     "database.history.kafka.topic": "schema-changes.postgres",

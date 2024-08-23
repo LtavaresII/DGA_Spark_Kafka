@@ -1,18 +1,16 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col
+from pyspark.sql.functions import from_json, col, from_csv
 from pyspark.sql.types import StructType, StructField, StringType, DateType, DoubleType
-from pyspark.sql.functions import to_json, struct
-#from kafka import KafkaProducer
-import json
 
 # Cria a Spark Session
 spark = SparkSession.builder \
-    .appName("DatalaketoKafka") \
-    .config('spark.jars.packages', 'org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0') \
-    .config("spark.sql.streaming.checkpointLocation", "/opt/bitnami/spark/checkpoints") \
-    .getOrCreate()
+        .appName("KafkatoConsole") \
+        .config('spark.jars.packages', 'org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0')\
+        .config('spark.jars.packages', 'org.apache.spark:spark-streaming-kafka-0-10_2.12:3.5.0') \
+        .getOrCreate()
 
-schema = StructType([
+# Schema dos dados JSON
+json_schema = StructType([
         StructField("iso_code", StringType(), True),
         StructField("continent", StringType(), True),
         StructField("location", StringType(), True),
@@ -71,25 +69,39 @@ schema = StructType([
         StructField("excess_mortality", DoubleType(), True)
 ])
 
-# Leitura dos dados do CSV como um stream de dados
-df = spark.readStream \
-    .format("csv") \
-    .option("path", '/opt/bitnami/spark/data') \
-    .option("sep", ",") \
-    .option("header", "true") \
-    .schema(schema) \
-    .option("maxFilesPerTrigger", 1) \
-    .load()
-
-# Converte os dados para JSON
-df_json = df.select(to_json(struct([col(c) for c in df.columns])).alias("value"))
-
-# Escrever o stream no Kafka
-query = df_json.writeStream \
+# Consome dados do Kafka
+df_kafka = spark.readStream \
     .format("kafka") \
     .option("kafka.bootstrap.servers", "kafka:29092") \
-    .option("topic", "covid") \
+    .option("subscribe", "covid") \
+    .option("startingOffsets", "earliest") \
+    .load()
+
+# Converte a mensagem do Kafka para String e aplica o schema JSON
+df_kafka = df_kafka.selectExpr("CAST(value AS STRING)") \
+    .select(from_json(col("value"), json_schema).alias("data")) \
+    .select("data.*")
+
+# Transformação (Redução/Seleção de dados)
+df = df_kafka.select("iso_code", "continent","location","date","total_cases","total_deaths","reproduction_rate","icu_patients","hosp_patients","weekly_icu_admissions","weekly_hosp_admissions","total_tests","total_vaccinations","people_vaccinated","population","population_density","median_age","aged_65_older","aged_70_older","gdp_per_capita","extreme_poverty","excess_mortality")
+
+# Definição da Função para Gravar os Dados no PostgreSQL
+def save_to_postgres(df, epoch_id):
+    df.write \
+        .format("jdbc") \
+        .mode("append") \
+        .option("url", "jdbc:postgresql://postgres:5432/airflow_db") \
+        .option("driver", "org.postgresql.Driver") \
+        .option("dbtable", "covid_data") \
+        .option("user", "airflow") \
+        .option("password", "airflow") \
+        .save()
+
+#Aplicar a Função save_to_postgres a Cada Micro-batch
+query = df.writeStream \
+    .outputMode("append") \
+    .foreachBatch(save_to_postgres) \
     .start()
 
-# Aguardar até que o streaming termine
+#Esperar a Terminação do Stream
 query.awaitTermination()
